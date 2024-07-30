@@ -7,8 +7,8 @@
 - [x] Basic CAN Communication
 - [x] CAN Message Filtering
 - [x] CAN Message Decoding
-- [ ] Real-time Data Display
-- [ ] Error Detection and Handling
+- [x] Real-time Data Display
+- [x] Error Detection and Handling
 - [ ] Statistical Analysis Tools
 - [ ] Graphical Representation of Data
 
