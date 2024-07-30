@@ -18,7 +18,7 @@
 
 - Linux-based operating system
 - SocketCAN library (for CAN communication)
-- Required development tools (e.g., gcc)
+- Required development tools (gcc, make, build essential)
 
 ### Installation
 
