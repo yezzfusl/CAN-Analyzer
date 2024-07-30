@@ -50,3 +50,7 @@ int can_receive(int socket_fd, struct can_frame *frame) {
 void can_close(int socket_fd) {
     close(socket_fd);
 }
+
+void set_can_filter(int socket_fd, struct can_filter *filter) {
+    setsockopt(socket_fd, SOL_CAN_RAW, CAN_RAW_FILTER, filter, sizeof(struct can_filter));
+}
