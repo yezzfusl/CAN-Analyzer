@@ -2,10 +2,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
+#include <time.h>
 #include "can_interface.h"
 #include "can_filter.h"
 #include "can_decode.h"
+#include "real_time_display.h"
+#include "error_handling.h"
 #include "../include/utils.h"
+
+volatile sig_atomic_t running = 1;
+
+void signal_handler(int signum) {
+    (void)signum;
+    running = 0;
+}
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -17,8 +28,7 @@ int main(int argc, char *argv[]) {
     int socket_fd = can_init(ifname);
 
     if (socket_fd < 0) {
-        fprintf(stderr, "Failed to initialize CAN interface\n");
-        exit(1);
+        handle_error("Failed to initialize CAN interface");
     }
 
     printf("CAN Analyzer initialized. Listening on %s\n", ifname);
@@ -29,16 +39,37 @@ int main(int argc, char *argv[]) {
     filter.can_mask = CAN_SFF_MASK;
     set_can_filter(socket_fd, &filter);
 
-    while (1) {
+    // Set up signal handling
+    signal(SIGINT, signal_handler);
+
+    // Initialize real-time display
+    init_real_time_display();
+
+    struct timespec last_update_time, current_time;
+    clock_gettime(CLOCK_MONOTONIC, &last_update_time);
+
+    while (running) {
         struct can_frame frame;
-        if (can_receive(socket_fd, &frame) == 0) {
+        int recv_result = can_receive(socket_fd, &frame);
+
+        if (recv_result == 0) {
             if (apply_can_filter(&frame, &filter)) {
-                print_can_frame(&frame);
                 decode_can_message(&frame);
+                update_real_time_display(&frame);
             }
+        } else if (recv_result < 0) {
+            handle_error("Error receiving CAN frame");
+        }
+
+        clock_gettime(CLOCK_MONOTONIC, &current_time);
+        if (current_time.tv_sec - last_update_time.tv_sec >= 1) {
+            refresh_real_time_display();
+            last_update_time = current_time;
         }
     }
 
+    cleanup_real_time_display();
     can_close(socket_fd);
+    printf("\nCAN Analyzer shutting down...\n");
     return 0;
 }
