@@ -24,7 +24,7 @@
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yezzfusl/CAN-Analyzer.git```
+   git clone https://github.com/yezzfusl/CAN-Analyzer.git
 
 2. Navigate to the project directory:
   ```cd CAN-Analyzer```
