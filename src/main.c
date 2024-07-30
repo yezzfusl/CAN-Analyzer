@@ -3,6 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 #include "can_interface.h"
+#include "can_filter.h"
+#include "can_decode.h"
 #include "../include/utils.h"
 
 int main(int argc, char *argv[]) {
@@ -21,10 +23,19 @@ int main(int argc, char *argv[]) {
 
     printf("CAN Analyzer initialized. Listening on %s\n", ifname);
 
+    // Initialize filter (example: only messages with ID 0x123)
+    struct can_filter filter;
+    filter.can_id = 0x123;
+    filter.can_mask = CAN_SFF_MASK;
+    set_can_filter(socket_fd, &filter);
+
     while (1) {
         struct can_frame frame;
         if (can_receive(socket_fd, &frame) == 0) {
-            print_can_frame(&frame);
+            if (apply_can_filter(&frame, &filter)) {
+                print_can_frame(&frame);
+                decode_can_message(&frame);
+            }
         }
     }
 
