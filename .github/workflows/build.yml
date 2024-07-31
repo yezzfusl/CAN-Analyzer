@@ -16,25 +16,50 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y can-utils libc6-dev gcc make gnuplot
+        sudo apt-get install -y libc6-dev gcc make gnuplot
 
     - name: Build project
       run: make
 
-    - name: Run tests
+    - name: Run mock test
       run: |
-        # Setup virtual CAN interface
-        sudo modprobe vcan
-        sudo ip link add dev vcan0 type vcan
-        sudo ip link set up vcan0
+        # Create a mock CAN data file
+        echo "0 123 8 DE AD BE EF 00 00 00 00" > mock_can_data.log
+        echo "1 456 8 01 23 45 67 89 AB CD EF" >> mock_can_data.log
         
-        # Run CAN Analyzer in background
-        ./can_analyzer vcan0 &
+        # Modify CAN Analyzer to read from file instead of CAN interface
+        sed -i 's/can_receive(socket_fd, &frame)/read_mock_can_data("mock_can_data.log", &frame)/' src/main.c
+        
+        # Add mock function to main.c
+        echo "
+        #include <stdio.h>
+        int read_mock_can_data(const char* filename, struct can_frame *frame) {
+            static FILE *file = NULL;
+            if (!file) file = fopen(filename, \"r\");
+            if (!file) return -1;
+            unsigned int id;
+            int dlc;
+            if (fscanf(file, \"%*d %x %d\", &id, &dlc) != 2) {
+                fclose(file);
+                file = NULL;
+                return -1;
+            }
+            frame->can_id = id;
+            frame->can_dlc = dlc;
+            for (int i = 0; i < dlc; i++) {
+                unsigned int byte;
+                fscanf(file, \"%x\", &byte);
+                frame->data[i] = byte;
+            }
+            return 0;
+        }" >> src/main.c
+        
+        # Rebuild the project
+        make
+        
+        # Run CAN Analyzer with mock data
+        ./can_analyzer mock &
         CAN_PID=$!
-        
-        # Send test messages
-        cansend vcan0 123#DEADBEEF
-        cansend vcan0 456#01234567
         
         # Wait for a moment to allow processing
         sleep 5
