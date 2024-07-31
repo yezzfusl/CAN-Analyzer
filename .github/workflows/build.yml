@@ -33,6 +33,7 @@ jobs:
         # Add mock function to main.c
         echo "
         #include <stdio.h>
+        int read_mock_can_data(const char* filename, struct can_frame *frame);
         int read_mock_can_data(const char* filename, struct can_frame *frame) {
             static FILE *file = NULL;
             if (!file) file = fopen(filename, \"r\");
