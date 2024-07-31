@@ -1,0 +1,57 @@
+name: Build CAN Analyzer
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y can-utils libc6-dev gcc make gnuplot
+
+    - name: Build project
+      run: make
+
+    - name: Run tests
+      run: |
+        # Setup virtual CAN interface
+        sudo modprobe vcan
+        sudo ip link add dev vcan0 type vcan
+        sudo ip link set up vcan0
+        
+        # Run CAN Analyzer in background
+        ./can_analyzer vcan0 &
+        CAN_PID=$!
+        
+        # Send test messages
+        cansend vcan0 123#DEADBEEF
+        cansend vcan0 456#01234567
+        
+        # Wait for a moment to allow processing
+        sleep 5
+        
+        # Kill CAN Analyzer
+        kill $CAN_PID
+        
+        # Check if graph was generated
+        if [ -f can_data.png ]; then
+          echo "Graph generated successfully"
+        else
+          echo "Graph generation failed"
+          exit 1
+        fi
+
+    - name: Upload graph artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: can-data-graph
+        path: can_data.png
