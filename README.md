@@ -9,8 +9,8 @@
 - [x] CAN Message Decoding
 - [x] Real-time Data Display
 - [x] Error Detection and Handling
-- [ ] Statistical Analysis Tools
-- [ ] Graphical Representation of Data
+- [x] Statistical Analysis Tools
+- [x] Graphical Representation of Data
 
 ## Getting Started
 
