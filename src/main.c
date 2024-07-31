@@ -10,6 +10,7 @@
 #include "real_time_display.h"
 #include "error_handling.h"
 #include "statistical_analysis.h"
+#include "graphical_display.h"
 #include "../include/utils.h"
 
 volatile sig_atomic_t running = 1;
@@ -43,9 +44,10 @@ int main(int argc, char *argv[]) {
     // Set up signal handling
     signal(SIGINT, signal_handler);
 
-    // Initialize real-time display and statistical analysis
+    // Initialize components
     init_real_time_display();
     init_statistical_analysis();
+    init_graphical_display();
 
     struct timespec last_update_time, current_time;
     clock_gettime(CLOCK_MONOTONIC, &last_update_time);
@@ -59,6 +61,7 @@ int main(int argc, char *argv[]) {
                 decode_can_message(&frame);
                 update_real_time_display(&frame);
                 update_statistical_analysis(&frame);
+                update_graphical_display(&frame);
             }
         } else if (recv_result < 0) {
             handle_error("Error receiving CAN frame");
@@ -68,12 +71,14 @@ int main(int argc, char *argv[]) {
         if (current_time.tv_sec - last_update_time.tv_sec >= 1) {
             refresh_real_time_display();
             print_statistical_analysis();
+            generate_graphs();
             last_update_time = current_time;
         }
     }
 
     cleanup_real_time_display();
     cleanup_statistical_analysis();
+    cleanup_graphical_display();
     can_close(socket_fd);
     printf("\nCAN Analyzer shutting down...\n");
     return 0;
